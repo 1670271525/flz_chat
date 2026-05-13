@@ -1,0 +1,8 @@
+build/
+*.o
+bin/
+.vscode/
+Log/
+out/
+.cache
+
