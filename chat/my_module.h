@@ -1,3 +1,4 @@
+#pragma once
 #include "include/module.h"
 #include <memory>
 
@@ -12,6 +13,12 @@ public:
     bool onUnload() override;
     bool onServerReady() override;
     bool onServerUp() override;
+
+private:
+    bool registerHttpServlets();
+    bool registerWsServlets();
+    bool startMq();
+    void stopMq();
 };
 
 }

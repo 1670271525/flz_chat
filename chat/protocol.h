@@ -2,23 +2,27 @@
 #ifndef __CHAT_PROTOCOL_H__
 #define __CHAT_PROTOCOL_H__
 
+#include "http/ws_session.h"
+#include <json/json.h>
 #include <string>
-#include <map>
-#include <memory>
 
 namespace chat {
 
-class ChatMessage {
-public:
-    typedef std::shared_ptr<ChatMessage> ptr;
+struct ClientFrame {
+    std::string type;
+    bool has_seq = false;
+    int64_t seq = 0;
+    Json::Value data = Json::Value(Json::objectValue);
+};
 
-    static ChatMessage::ptr Create(const std::string& v);
-    ChatMessage();
-    std::string get(const std::string& name);
-    void set(const std::string& name, const std::string& val);
-    std::string toString() const;
-private:
-    std::map<std::string, std::string> m_datas;
+class Protocol {
+public:
+    static bool ParseClientFrame(const std::string& raw, ClientFrame& out, std::string& err);
+    static Json::Value BuildFrame(const std::string& type, const Json::Value& data, bool has_seq = false, int64_t seq = 0);
+    static int32_t SendFrame(flz::http::WSSession::ptr session, const std::string& type,
+                             const Json::Value& data, bool has_seq = false, int64_t seq = 0);
+    static int32_t SendError(flz::http::WSSession::ptr session, int code, const std::string& msg,
+                             bool has_seq = false, int64_t seq = 0);
 };
 
 }

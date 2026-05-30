@@ -3,8 +3,8 @@
 #define __CHAT_CHAT_SERVLET_H__
 
 #include "http/ws_servlet.h"
-
-
+#include <stdint.h>
+#include <string>
 
 namespace chat {
 
@@ -19,6 +19,10 @@ public:
     virtual int32_t handle(flz::http::HttpRequest::ptr header
                            ,flz::http::WSFrameMessage::ptr msg
                            ,flz::http::WSSession::ptr session) override;
+
+private:
+    std::string ExtractToken(flz::http::HttpRequest::ptr header) const;
+    std::string AllocFallbackDeviceId(uint64_t uid) const;
 };
 
 

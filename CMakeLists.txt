@@ -36,11 +36,30 @@ endif()
 
 set(LIB_SRC
         chat/my_module.cc
+		chat/chat_servlet.cc
+		chat/protocol.cc
+        chat/auth/jwt.cc
+        chat/session/session_registry.cc
+        chat/mq/amqp_client.cc
+        chat/mq/envelope.cc
+        chat/mq/publisher.cc
+        chat/mq/consumer.cc
+        chat/mq/topology.cc
+        chat/dispatch/ws_to_mq.cc
+        chat/dispatch/mq_to_ws.cc
+        chat/util/uuid.cc
+        chat/util/time_util.cc
+        chat/util/base64url.cc
+        chat/util/lru_idempotency.cc
+        chat/config/chat_config.cc
+        chat/metrics/metrics.cc
     )
 
+find_library(RABBITMQ_LIB rabbitmq REQUIRED)
 
 add_library(flz_chat SHARED ${LIB_SRC})
 force_redefine_file_macro_for_sources(flz_chat)
+target_link_libraries(flz_chat ${RABBITMQ_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
