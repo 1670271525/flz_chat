@@ -4,6 +4,7 @@
 #include "chat/mq/publisher.h"
 #include "chat/protocol.h"
 #include "chat/util/time_util.h"
+#include "include/json_util.h"
 #include "include/log.h"
 
 namespace chat {
@@ -22,6 +23,7 @@ int WsToMqDispatcher::HandleMsgSend(uint64_t uid, const std::string& did, flz::h
     int64_t conversation_id = data.get("conversationId", 0).asInt64();
     std::string content = data.get("content", "").asString();
     std::string sent_at = data.get("sentAt", "").asString();
+    const Json::Value media_meta = data["mediaMeta"];
     if(sent_at.empty()) {
         sent_at = util::Iso8601Now();
     }
@@ -54,6 +56,13 @@ int WsToMqDispatcher::HandleMsgSend(uint64_t uid, const std::string& did, flz::h
     payload["type"] = 1;
     payload["content"] = content;
     payload["sentAt"] = sent_at;
+    if(!media_meta.isNull()) {
+        if(media_meta.isString()) {
+            payload["mediaMeta"] = media_meta.asString();
+        } else {
+            payload["mediaMeta"] = flz::JsonUtil::ToString(media_meta);
+        }
+    }
 
     if(!mq::MqPublisher::GetInstance()->Publish("business.msg.persist", payload, 0)) {
         {

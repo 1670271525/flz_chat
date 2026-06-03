@@ -17,6 +17,12 @@ except ImportError as exc:
 
 TZ = timezone(timedelta(hours=8))
 
+# 与 docs/MQ.md / 业务侧 Spring 声明保持一致
+BUSINESS_QUEUE_ARGS = {
+    "x-dead-letter-exchange": "business.dlx",
+    "x-message-ttl": 86400000,
+}
+
 
 def iso_now() -> str:
     return datetime.now(TZ).replace(microsecond=0).isoformat()
@@ -51,15 +57,19 @@ class MockBusiness:
     def declare_topology(self) -> None:
         self.ch.exchange_declare(exchange="chat.exchange", exchange_type="topic", durable=True)
         self.ch.exchange_declare(exchange="business.exchange", exchange_type="topic", durable=True)
+        self.ch.exchange_declare(exchange="business.dlx", exchange_type="fanout", durable=True)
 
-        self.ch.queue_declare(queue="business.persist.queue", durable=True)
+        self.ch.queue_declare(queue="business.dlq", durable=True)
+        self.ch.queue_bind("business.dlq", "business.dlx", routing_key="")
+
+        self.ch.queue_declare(queue="business.persist.queue", durable=True, arguments=BUSINESS_QUEUE_ARGS)
         self.ch.queue_bind("business.persist.queue", "business.exchange", "business.msg.persist")
 
-        self.ch.queue_declare(queue="business.user.event.queue", durable=True)
+        self.ch.queue_declare(queue="business.user.event.queue", durable=True, arguments=BUSINESS_QUEUE_ARGS)
         self.ch.queue_bind("business.user.event.queue", "business.exchange", "business.user.online")
         self.ch.queue_bind("business.user.event.queue", "business.exchange", "business.user.offline")
 
-        self.ch.queue_declare(queue="business.msg.ack.queue", durable=True)
+        self.ch.queue_declare(queue="business.msg.ack.queue", durable=True, arguments=BUSINESS_QUEUE_ARGS)
         self.ch.queue_bind("business.msg.ack.queue", "business.exchange", "business.msg.ack")
 
     def next_message_id(self) -> int:
@@ -89,6 +99,7 @@ class MockBusiness:
             "receivers": payload.get("receivers", []),
             "type": 1,
             "content": payload.get("content", ""),
+            "mediaMeta": payload.get("mediaMeta"),
             "createdAt": iso_now(),
         }
         self.publish_chat("chat.msg.send", response)
@@ -139,8 +150,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run mock flz_chat_business MQ bridge")
     parser.add_argument("--host", default=os.getenv("RABBITMQ_HOST", "127.0.0.1"))
     parser.add_argument("--port", default=int(os.getenv("RABBITMQ_PORT", "5672")), type=int)
-    parser.add_argument("--user", default=os.getenv("RABBITMQ_USER", "flz_chat"))
-    parser.add_argument("--password", default=os.getenv("RABBITMQ_PASSWORD", "change_me"))
+    parser.add_argument("--user", default=os.getenv("RABBITMQ_USER", "root"))
+    parser.add_argument("--password", default=os.getenv("RABBITMQ_PASSWORD", "root"))
     parser.add_argument("--vhost", default=os.getenv("RABBITMQ_VHOST", "/"))
     args = parser.parse_args()
 
